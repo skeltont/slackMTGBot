@@ -24,7 +24,7 @@ function handleResponse(card) {
       break;
 
     case 'Planeswalker':
-      message = message + "loyalty: " + parsedJSON[card]['loyalty'] + "\n";
+      message = message + "loyalty: " + card['loyalty'] + "\n";
       break;
 
     case 'Enchantment':
@@ -40,22 +40,42 @@ function handleResponse(card) {
   return message;
 }
 
+function handleImage(name, sets) {
+  ids = [];
+  for (var s in sets) {
+    for (var c in sets[s]['cards']) {
+      if (sets[s]['cards'][c]['name'] == name) {
+        // return s + ' ' + sets[s]['cards'][c]['mciNumber'];
+        // console.log(to_lower(s) + ' ' + sets[s]['cards'][c]['mciNumber']);
+        if (sets[s]['cards'][c]['multiverseid']) {
+          ids.push(sets[s]['cards'][c]['multiverseid']);
+        }
+      }
+    }
+  }
+  return ids;
+}
+
 // what gets required by the app.
 module.exports = function (req, res, next) {
-  var parsedJSON = require('./AllCards.json');
+  var sets = require('./AllSets.json');
+  var cards = require('./AllCards.json');
   var request = require('request');
 
   var userName = req.body.user_name,
       text = req.body.text,
       card = '',
-      message = '';
+      message = '',
+      ids = [];
 
   card = handleText(text);
 
-  if (!parsedJSON[card]) {
+  if (!cards[card]) {
     message = "could not find card, usage: `mtgbot [card-name-case-sensitive]`";
   } else {
-    message = handleResponse(parsedJSON[card]);
+    message = handleResponse(cards[card]);
+    ids = handleImage(card, sets);
+    message = message + "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=" + ids[Math.floor(Math.random() * ids.length)] + "&type=card"
   }
 
   // Sanity check. We don't want our slackbot to make this shit infinite.
